@@ -54,7 +54,7 @@ fn run(){
     #[allow(dead_code)]
     #[allow(non_snake_case)]
     #[derive(Clone,Copy)]
-    struct data{
+    struct Data {
         N:u32,
         nsim:u32,
     }
@@ -69,7 +69,7 @@ fn run(){
         .expect("failed to create buffer");
     let angle_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, angle_data)
         .expect("failed to create buffer");
-    let init_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, data{N,nsim})
+    let init_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, Data {N,nsim})
         .expect("failed to create buffer");
     let length_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, length_data)
         .expect("failed to create buffer");
