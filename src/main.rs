@@ -47,8 +47,12 @@ fn run(){
 
 
     // Buffer
+    #[warn(non_upper_case_globals)]
     const N :u32= 100;
+    #[warn(non_upper_case_globals)]
     const nsim:u32=1000;
+    #[allow(dead_code)]
+    #[allow(non_snake_case)]
     #[derive(Clone,Copy)]
     struct data{
         N:u32,
