@@ -54,13 +54,13 @@ fn run(){
         N:u32,
         nsim:u32,
     }
-    let mut angle_data = [0. as f64;(N*nsim) as usize];
-    let mut length_data = [0. as f64;(nsim) as usize];
+    let mut angle_data = [0_f64;(N*nsim) as usize];
+    let length_data = [0_f64;(nsim) as usize];
     let mut rng = rand::thread_rng();
     for i in 0..nsim {
         angle_data[(i * N) as usize] = rng.gen_range(-std::f64::consts::FRAC_PI_2..std::f64::consts::FRAC_PI_2);
     }
-    let n_data = [0 as i32;(nsim) as usize];
+    let n_data = [0_i32;(nsim) as usize];
     let n_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, n_data)
         .expect("failed to create buffer");
     let angle_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, angle_data)
@@ -92,7 +92,7 @@ fn run(){
     ,[
                                                WriteDescriptorSet::buffer(1, angle_buffer.clone()),
                                            WriteDescriptorSet::buffer(2, n_buffer.clone()),
-                                           WriteDescriptorSet::buffer(0, init_buffer.clone()),
+                                           WriteDescriptorSet::buffer(0, init_buffer),
                                            WriteDescriptorSet::buffer(3, length_buffer.clone())
                                            ],)
 
@@ -119,14 +119,14 @@ fn run(){
         .unwrap();
 
     let command_buffer = builder.build().unwrap();
-    let future = sync::now(device.clone())
-        .then_execute(queue.clone(), command_buffer)
+    let future = sync::now(device)
+        .then_execute(queue, command_buffer)
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap();
     future.wait(None).unwrap();
 
-    let content = angle_buffer.read().unwrap();
+    let _content = angle_buffer.read().unwrap();
     let mut file = File::create("file.csv").unwrap();
 
     let content = n_buffer.read().unwrap();
@@ -145,7 +145,7 @@ fn run(){
         //println!();
     }
     println!("{}",(sum/nsim as f64).sqrt());
-    for &f in angle_buffer.read().unwrap().iter(){
+    for &_f in angle_buffer.read().unwrap().iter(){
         //writeln!(&mut file, "{f:04},").unwrap();
         //println!();
     }
