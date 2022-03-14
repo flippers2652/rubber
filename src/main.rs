@@ -8,7 +8,6 @@ use vulkano::sync;
 use vulkano::sync::GpuFuture;
 use vulkano::pipeline::ComputePipeline;
 use vulkano::descriptor_set::PersistentDescriptorSet;
-use vulkano::descriptor_set::DescriptorSet;
 //use vulkano::pipeline::ComputePipelineAbstract;
 use vulkano::pipeline::PipelineBindPoint;
 use vulkano::pipeline::Pipeline;
@@ -47,9 +46,9 @@ fn run(){
 
 
     // Buffer
-    #[warn(non_upper_case_globals)]
+    #[allow(non_upper_case_globals)]
     const N :u32= 100;
-    #[warn(non_upper_case_globals)]
+    #[allow(non_upper_case_globals)]
     const nsim:u32=1000;
     #[allow(dead_code)]
     #[allow(non_snake_case)]
