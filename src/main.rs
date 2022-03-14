@@ -8,7 +8,6 @@ use vulkano::sync;
 use vulkano::sync::GpuFuture;
 use vulkano::pipeline::ComputePipeline;
 use vulkano::descriptor_set::PersistentDescriptorSet;
-//use vulkano::pipeline::ComputePipelineAbstract;
 use vulkano::pipeline::PipelineBindPoint;
 use vulkano::pipeline::Pipeline;
 use vulkano::descriptor_set::WriteDescriptorSet;
