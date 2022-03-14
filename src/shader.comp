@@ -18,6 +18,8 @@ layout(set = 0, binding = 2) buffer Data2 {
 layout(set = 0, binding = 3) buffer Data3 {
     double len[];
 } buf3;
+
+//G.P.U.s are bad at random
 double random (vec2 st) {
     return fract(sin(dot(st.xy,
     vec2(PI/2,78.233LF)))*
@@ -53,13 +55,11 @@ void main() {
             a-=2*PI;
         }
         if (abs(a)<PI/2){
-            //buf.angle[idx*init.n+i]=(abs(a));
             Nn+=1;
         } else {
             Np+=1;
         }
     }
-    //buf3.len[idx]=buf.angle[idx*init.n];
     buf3.len[idx]=sqrt(l.x*l.x+l.y*l.y);
     buf2.n[idx]=Nn-Np;
 }

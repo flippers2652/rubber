@@ -1,3 +1,4 @@
+#![allow(clippy::needless_question_mark)]
 use vulkano::instance::{Instance, InstanceExtensions};
 use vulkano::Version;
 use vulkano::device::physical::PhysicalDevice;
@@ -14,20 +15,24 @@ use vulkano::descriptor_set::WriteDescriptorSet;
 use rand::Rng;
 use std::fs::File;
 use std::io::prelude::*;
+
+
 mod cp {
     vulkano_shaders::shader! {
         ty: "compute",
         path:"src/shader.comp"
     }
 }
+
+
 fn run(){
-    // Instance
+    // Instance Creation
     let instance = Instance::new(None, Version::V1_1, &InstanceExtensions::none(), None)
         .expect("failed to create instance");
     let physical = PhysicalDevice::enumerate(&instance).next().expect("no device available");
 
-    // Device
 
+    // Device Creation
     let queue_family = physical.queue_families()
         .find(|&q| q.supports_graphics())
         .expect("couldn't find a graphical queue family");
@@ -43,26 +48,31 @@ fn run(){
     let queue = queues.next().unwrap();
 
 
+    // Buffer Creation
+    #[allow(non_upper_case_globals)]
+    const nsim:u32=1000; // Number of simulations
+    const N :u32= 100; // Number of Edges per simulation
 
-    // Buffer
-    #[allow(non_upper_case_globals)]
-    const N :u32= 100;
-    #[allow(non_upper_case_globals)]
-    const nsim:u32=1000;
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Rust does not realise another language (GLSL) uses this bit of data
     #[allow(non_snake_case)]
-    #[derive(Clone,Copy)]
+    #[derive(Clone,Copy)] // Make this structure be a nice thing
+    #[repr(C)] // So rust doesn't move things around as it thinks no one will notice (they will)
     struct Data {
         N:u32,
         nsim:u32,
     }
+
+    // I don't need all this data now but I did at one point so I'm keeping it
     let mut angle_data = [0_f64;(N*nsim) as usize];
     let length_data = [0_f64;(nsim) as usize];
+    let n_data = [0_i32;(nsim) as usize];
+
+    // Randomly Create the first angle in the sequence as G.P.U.s are bad at random numbers
     let mut rng = rand::thread_rng();
     for i in 0..nsim {
         angle_data[(i * N) as usize] = rng.gen_range(-std::f64::consts::FRAC_PI_2..std::f64::consts::FRAC_PI_2);
     }
-    let n_data = [0_i32;(nsim) as usize];
+
     let n_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, n_data)
         .expect("failed to create buffer");
     let angle_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, angle_data)
@@ -71,7 +81,10 @@ fn run(){
         .expect("failed to create buffer");
     let length_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, length_data)
         .expect("failed to create buffer");
+
+
     // Pipeline
+    // Ignore this. It just means please run the shader.comp
     let compute = cp::load(device.clone())
         .expect("failed to create shader module");
 
@@ -82,7 +95,6 @@ fn run(){
         None,
         |_|{}
     ).expect("failed to create compute pipeline");
-
 
     let layout = compute_pipeline
         .layout()
@@ -100,7 +112,6 @@ fn run(){
 
         .unwrap();
         //.unwrap();
-
 
     let mut builder = AutoCommandBufferBuilder::primary(
         device.clone(),
@@ -121,45 +132,52 @@ fn run(){
         .unwrap();
 
     let command_buffer = builder.build().unwrap();
+
+    // Tell code to start
     let future = sync::now(device)
         .then_execute(queue, command_buffer)
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap();
+
+    // Wait for code to finish
     future.wait(None).unwrap();
 
-    let _content = angle_buffer.read().unwrap();
-    let mut file = File::create("file.csv").unwrap();
-
+    // Get buffers
     let content = n_buffer.read().unwrap();
     let ns = content.iter();
     let content = length_buffer.read().unwrap();
     let lengths = content.iter();
     let iter =std::iter::zip(ns,lengths);
+
+    // For calculating R.M.S.
     let mut sum=0.;
+    // Writes data to a csv file
+
+    let mut file = File::create("file.csv").unwrap();
     for (&n,&l) in iter{
         writeln!(&mut file, "{n:04},{l:04},").unwrap();
         sum+=l*l;
-        if n<0 {
-
-            println!("{n:04},{l:04},");
-        }
-        //println!();
     }
+
+    // Prints R.M.S. of lengths
     println!("{}",(sum/nsim as f64).sqrt());
+
+    // Debug stuff
+    /*
     for &_f in angle_buffer.read().unwrap().iter(){
         //writeln!(&mut file, "{f:04},").unwrap();
         //println!();
-    }
+    }*/
 }
 const STACK_SIZE: usize = 40000 * 1024 * 1024;
 fn main() {
-    // Spawn thread with explicit stack size
+    // Spawn thread with explicit stack size as main's is tiny
     let child = std::thread::Builder::new()
         .stack_size(STACK_SIZE)
         .spawn(run)
         .unwrap();
 
-    // Wait for thread to join
+    // Wait for thread to finish
     child.join().unwrap();
 }
