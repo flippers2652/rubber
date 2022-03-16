@@ -50,8 +50,10 @@ fn run(){
 
     // Buffer Creation
     #[allow(non_upper_case_globals)]
-    const nsim:u32=1000; // Number of simulations
-    const N :u32= 100; // Number of Edges per simulation
+    const nsimx:u32=200; // Number of simulations
+    const nsimy:u32=200; // Number of simulations
+    const nsimz:u32=200; // Number of simulations
+    const N :u32= 10000; // Number of Edges per simulation
 
     #[allow(dead_code)] // Rust does not realise another language (GLSL) uses this bit of data
     #[allow(non_snake_case)]
@@ -59,25 +61,27 @@ fn run(){
     #[repr(C)] // So rust doesn't move things around as it thinks no one will notice (they will)
     struct Data {
         N:u32,
-        nsim:u32,
+        nsimx:u32,
+        nsimy:u32,
+        nsimz:u32,
     }
-
+    const nsim :u64=nsimx as u64*nsimy as u64*nsimz as u64;
     // I don't need all this data now but I did at one point so I'm keeping it
-    let mut angle_data = [0_f64;(N*nsim) as usize];
+    let mut angle_data = [0_f64;(2*nsim) as usize];
     let length_data = [0_f64;(nsim) as usize];
     let n_data = [0_i32;(nsim) as usize];
 
     // Randomly Create the first angle in the sequence as G.P.U.s are bad at random numbers
     let mut rng = rand::thread_rng();
-    for i in 0..nsim {
-        angle_data[(i * N) as usize] = rng.gen_range(-std::f64::consts::FRAC_PI_2..std::f64::consts::FRAC_PI_2);
+    for i in 0..nsim{
+        angle_data[(i * 2) as usize] = rng.gen_range(-std::f64::consts::FRAC_PI_2..std::f64::consts::FRAC_PI_2);
     }
 
     let n_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, n_data)
         .expect("failed to create buffer");
     let angle_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, angle_data)
         .expect("failed to create buffer");
-    let init_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, Data {N,nsim})
+    let init_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, Data {N,nsimx,nsimy,nsimz})
         .expect("failed to create buffer");
     let length_buffer = CpuAccessibleBuffer::from_data(device.clone(), BufferUsage::all(), false, length_data)
         .expect("failed to create buffer");
@@ -119,7 +123,7 @@ fn run(){
         CommandBufferUsage::OneTimeSubmit,
     )
         .unwrap();
-
+    //println!("{}",nsim%65535);
     builder
         .bind_pipeline_compute(compute_pipeline.clone())
         .bind_descriptor_sets(
@@ -128,7 +132,7 @@ fn run(){
             0, // 0 is the index of our set
             set,
         )
-        .dispatch([nsim, 1, 1])
+        .dispatch([nsimx as u32, nsimy as u32, nsimz as u32])
         .unwrap();
 
     let command_buffer = builder.build().unwrap();
@@ -161,7 +165,7 @@ fn run(){
     }
 
     // Prints R.M.S. of lengths
-    println!("{}",(sum/nsim as f64).sqrt());
+    println!("{}",(sum/(nsimx*nsimy*nsimz) as f64).sqrt());
 
     // Debug stuff
     /*

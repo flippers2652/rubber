@@ -4,7 +4,9 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(set = 0, binding = 0) buffer Init {
     uint n;
-    uint nsim;
+    uint nsimx;
+    uint nsimy;
+    uint simz;
 } init;
 
 layout(set = 0, binding = 1) buffer Data {
@@ -27,27 +29,23 @@ double random (vec2 st) {
 }
 
 void main() {
-    uint idx = gl_GlobalInvocationID.x;
+    uint idx = gl_GlobalInvocationID.x+gl_GlobalInvocationID.y*init.nsimx+gl_GlobalInvocationID.z*init.nsimx*init.nsimy;
     vec2 l=vec2(0.0LF,0.0LF);
     int Nn=0;
     int Np=0;
 
     vec2 d=vec2(cos(float(buf.angle[idx*init.n])),sin(float(buf.angle[idx*init.n])));
     l+=d;
+
     for (int i = 1;i<init.n;i++){
-        buf.angle[idx*init.n+i]=random(mat2x2(cos(float(buf.angle[idx*init.n+i-1])),
-        sin(float(buf.angle[idx*init.n+i-1])),
-        -sin(float(buf.angle[idx*init.n+i-1])),
-        cos(float(buf.angle[idx*init.n+i-1])))*l*2)*PI*2-PI;
-        vec2 d=vec2(cos(float(buf.angle[idx*init.n+i])),sin(float(buf.angle[idx*init.n+i])));
+
+        buf.angle[idx*2+((i)%2)]=random(mat2x2(cos(float(buf.angle[idx*2+((i-1)%2)])),
+        sin(float(buf.angle[idx*2+((i-1)%2)])),
+        -sin(float(buf.angle[idx*2+((i-1)%2)])),
+        cos(float(buf.angle[idx*2+((i-1)%2)])))*l*2)*PI*2-PI;
+        vec2 d=vec2(cos(float(buf.angle[idx*2+((i)%2)])),sin(float(buf.angle[idx*2+((i)%2)])));
         l+=d;
-    }
-    float langle = acos(normalize(l).x);
-    if (l.y<0){
-        langle=-langle;
-    }
-    for (int i =0;i<init.n;i++){
-        double a=abs(buf.angle[idx*init.n+i]-buf.angle[idx*init.n+i-1]);
+        double a=abs(buf.angle[idx*2+(i%2)]-buf.angle[idx*2+((i-1)%2)]);
         if (a<-PI){
             a+=2*PI;
         }
@@ -60,6 +58,7 @@ void main() {
             Np+=1;
         }
     }
+
     buf3.len[idx]=sqrt(l.x*l.x+l.y*l.y);
     buf2.n[idx]=Nn-Np;
 }
